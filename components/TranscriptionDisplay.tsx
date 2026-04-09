@@ -4,7 +4,7 @@ import {
   User, Clock, Globe, Smile, Frown, AlertCircle, Meh, 
   UserCheck, Phone, MapPin, Stethoscope, Calendar, 
   CreditCard, MessageSquare, TrendingUp, Info, 
-  FileText, ShieldCheck, Heart
+  FileText, ShieldCheck, Heart, Building2
 } from 'lucide-react';
 
 interface TranscriptionDisplayProps {
@@ -59,18 +59,23 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({ data }) => 
           <p className="text-slate-700 dark:text-slate-300 text-lg leading-relaxed italic">
             "{summary}"
           </p>
-          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+          <div className="mt-6 grid grid-cols-3 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
             <div>
-              <p className="text-xs text-slate-500 mb-1">Recepcionista</p>
-              <p className="font-semibold flex items-center">
-                <UserCheck size={14} className="mr-2 text-indigo-500" /> {analysis.receiverName}
+              <p className="text-xs text-slate-500 mb-1">Call Center</p>
+              <p className="font-semibold flex items-center text-sm">
+                <Building2 size={14} className="mr-2 text-indigo-500" /> {analysis.callCenter}
               </p>
             </div>
-            <div>
-              <p className="text-xs text-slate-500 mb-1">Paciente / Llamante</p>
-              <p className="font-semibold flex items-center">
-                <User size={14} className="mr-2 text-indigo-500" /> {analysis.callerName || 'No identificado'}
-              </p>
+            <div className="col-span-2">
+              <p className="text-xs text-slate-500 mb-1">Personas Identificadas</p>
+              <div className="flex flex-wrap gap-2">
+                {analysis.peopleProfiles.map((person, idx) => (
+                  <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                    <User size={12} className="mr-1" />
+                    {person.name} ({person.roleInConversation})
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -95,52 +100,75 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({ data }) => 
       {/* Main Analysis Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Patient & Identifications */}
+        {/* Fichas de Personas */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center">
-            <ShieldCheck size={16} className="mr-2" /> Datos y Personas
+            <ShieldCheck size={16} className="mr-2" /> Fichas de Personas
           </h3>
           <div className="space-y-4">
-            {analysis.callerData && (
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
-                <p className="text-xs text-slate-500 mb-1">Perfil del Llamante</p>
-                <p className="text-sm">{analysis.callerData}</p>
-              </div>
-            )}
-            
-            {analysis.identifications.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-slate-500">Identificaciones Detectadas</p>
-                {analysis.identifications.map((id, i) => (
-                  <div key={i} className="flex items-center justify-between bg-indigo-50/50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100/50 dark:border-indigo-800/50">
-                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{id.type}</span>
-                    <span className="text-sm font-mono">{id.value}</span>
-                    <span className="text-[10px] uppercase px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded shadow-sm">
-                      {id.owner === 'caller' ? 'Titular' : 'Tercero'}
-                    </span>
+            {analysis.peopleProfiles.map((person, idx) => (
+              <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white flex items-center">
+                      <UserCheck size={16} className="mr-2 text-indigo-500" />
+                      {person.name}
+                    </p>
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium uppercase tracking-wider mt-1">
+                      {person.roleInConversation}
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+                
+                {person.roleDescription && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 italic">
+                    "{person.roleDescription}"
+                  </p>
+                )}
 
-            {analysis.otherPeople.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-slate-500">Otras Personas Mencionadas</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {analysis.otherPeople.map((p, i) => (
-                    <div key={i} className="flex items-start p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
-                      <div className="bg-white dark:bg-slate-700 p-1.5 rounded mr-3 mt-0.5">
-                        <UserCheck size={14} className="text-slate-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold">{p.name}</p>
-                        <p className="text-[10px] text-indigo-500 font-bold uppercase">{p.role}</p>
-                        <p className="text-xs text-slate-500">{p.responsibilities}</p>
-                      </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  {/* Personal Data */}
+                  {(person.personalData?.dateOfBirth || person.personalData?.age || person.personalData?.otherInfo) && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Datos Personales</p>
+                      {person.personalData?.dateOfBirth && <p>Nacimiento: {person.personalData.dateOfBirth}</p>}
+                      {person.personalData?.age && <p>Edad: {person.personalData.age}</p>}
+                      {person.personalData?.otherInfo && <p className="text-xs text-slate-500">{person.personalData.otherInfo}</p>}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Identifications */}
+                  {person.identifications && person.identifications.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Identificación</p>
+                      {person.identifications.map((id, i) => (
+                        <p key={i} className="font-mono text-xs bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 inline-block">
+                          <span className="font-bold text-indigo-500 mr-1">{id.type}:</span>{id.value}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Contact */}
+                  {(person.contact?.phones?.length > 0 || person.contact?.addresses?.length > 0 || person.contact?.emails?.length > 0) && (
+                    <div className="space-y-1 sm:col-span-2 mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Contacto</p>
+                      {person.contact?.phones?.map((phone, i) => (
+                        <p key={`phone-${i}`} className="flex items-center text-xs"><Phone size={12} className="mr-1 text-slate-400" /> {phone}</p>
+                      ))}
+                      {person.contact?.emails?.map((email, i) => (
+                        <p key={`email-${i}`} className="flex items-center text-xs"><Globe size={12} className="mr-1 text-slate-400" /> {email}</p>
+                      ))}
+                      {person.contact?.addresses?.map((address, i) => (
+                        <p key={`addr-${i}`} className="flex items-center text-xs"><MapPin size={12} className="mr-1 text-slate-400" /> {address}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+            ))}
+            {analysis.peopleProfiles.length === 0 && (
+              <p className="text-sm text-slate-500 italic">No se detectaron perfiles detallados en la llamada.</p>
             )}
           </div>
         </div>
@@ -164,10 +192,10 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({ data }) => 
               </div>
             )}
 
-            {analysis.appointmentRequest && (
+            {analysis.appointmentRequest && analysis.appointmentRequest.isConfirmed && (
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-xl p-4">
                 <div className="flex items-center text-green-700 dark:text-green-400 font-bold text-sm mb-3">
-                  <Calendar size={16} className="mr-2" /> SOLICITUD DE CITA
+                  <Calendar size={16} className="mr-2" /> SOLICITUD DE CITA CONFIRMADA
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -199,19 +227,6 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({ data }) => 
                 {analysis.leadPotential.requestedInfo && (
                   <p className="text-xs text-slate-500 mt-1">{analysis.leadPotential.requestedInfo}</p>
                 )}
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                <p className="text-[10px] text-slate-500 uppercase font-bold mb-2 flex items-center">
-                  <Phone size={12} className="mr-1" /> Contacto
-                </p>
-                <div className="space-y-1">
-                  {analysis.contactDetails.phones.map((p, i) => (
-                    <p key={i} className="text-sm font-mono">{p}</p>
-                  ))}
-                  {analysis.contactDetails.addresses.map((a, i) => (
-                    <p key={i} className="text-[10px] text-slate-500 leading-tight">{a}</p>
-                  ))}
-                </div>
               </div>
             </div>
           </div>

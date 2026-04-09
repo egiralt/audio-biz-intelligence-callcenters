@@ -18,7 +18,8 @@ const parseJson = (text: string) => {
 
 export const transcribeAudio = async (
   base64Audio: string,
-  mimeType: string
+  mimeType: string,
+  callCenter: string
 ): Promise<{ segments: TranscriptionSegment[]; summary: string }> => {
   if (!process.env.API_KEY) {
     throw new Error("API Key is missing. Please ensure process.env.API_KEY is available.");
@@ -33,24 +34,23 @@ export const transcribeAudio = async (
     Eres un experto asistente de transcripción y análisis de llamadas médicas para la clínica GomerMedi en Canarias.
     Procesa el archivo de audio proporcionado y genera una transcripción detallada junto con una ficha de análisis de la llamada.
     
+    El Call Center seleccionado para esta llamada es: "${callCenter}".
+    
     REQUISITOS IMPORTANTES:
     1. NO traduzcas la conversación al inglés. Todo el contenido debe estar en Español.
     2. Identifica claramente a los hablantes (Recepcionista vs Paciente/Llamante).
     3. Proporciona marcas de tiempo precisas para cada segmento (Formato: MM:SS).
     4. Realiza un análisis exhaustivo para completar la "ficha" de la llamada con los siguientes puntos:
-       - Nombre del receptor (personal de la clínica).
-       - Nombre del llamante y datos inferidos.
-       - Otras personas mencionadas (médicos, enfermeras, etc.) con sus roles.
-       - Identificaciones (DNI, NIE, Pasaporte) diferenciando si son del llamante o de terceros.
+       - Call Center (debe ser "${callCenter}").
+       - Fichas de Personas (peopleProfiles): Crea una ficha detallada para CADA persona que participe o sea mencionada en la llamada (Recepcionista, Llamante, Paciente, Familiares, Médicos, etc.). Extrae TODOS sus datos personales (fecha de nacimiento, edad, dirección, teléfono, DNI/NIE/Pasaporte, email) y asócialos correctamente a la persona correspondiente. Identifica su rol en la conversación.
        - Servicios solicitados.
-       - Datos de cita (fecha, hora, clínica) si se mencionan. IMPORTANTE: No confundas lugares generales con las clínicas. Las ÚNICAS clínicas válidas de GomerMedi son:
+       - Datos de cita (fecha, hora, clínica). IMPORTANTE: Debes discernir si la cita fue REALMENTE APROBADA y CONFIRMADA por el paciente. Si solo se proponen fechas pero el paciente no confirma claramente, marca 'isConfirmed' como false o no generes la cita. Además, no confundas lugares generales con las clínicas. Las ÚNICAS clínicas válidas de GomerMedi son:
          * TENERIFE: Centro Médico Ramón y Cajal, CRC Olímpico (en Tomé Cano), Tejina, Centro Médico Candelaria, Las Chafiras, CRC Los Cristianos.
          * GRAN CANARIA: Centro Médico Santa Brígida, Centro Médico Vecindario, Centro Médico Telde San Gregorio, Centro de Fisioterapia Telde, Centro Médico Las Palmas.
          * FUERTEVENTURA: CRC Puerto del Rosario, Centro Médico Puerto del Rosario.
          * LA GOMERA: Centro Médico San Sebastián, Centro de Fisioterapia San Sebastián.
        - Categoría de la llamada (información, citas, reclamación, equivocada, otro).
        - Detección de leads (interés en precios o servicios).
-       - Datos de contacto (teléfonos, direcciones).
        - Análisis de sentimiento detallado (puntuación 0-10 y descripción).
 
     Output Format: JSON object con la estructura definida en el schema.
@@ -84,29 +84,44 @@ export const transcribeAudio = async (
             analysis: {
               type: Type.OBJECT,
               properties: {
-                receiverName: { type: Type.STRING },
-                callerName: { type: Type.STRING },
-                callerData: { type: Type.STRING, description: "Datos adicionales inferidos del llamante." },
-                otherPeople: {
+                callCenter: { type: Type.STRING },
+                peopleProfiles: {
                   type: Type.ARRAY,
+                  description: "Fichas detalladas de todas las personas participantes o mencionadas en la llamada.",
                   items: {
                     type: Type.OBJECT,
                     properties: {
                       name: { type: Type.STRING },
-                      role: { type: Type.STRING },
-                      responsibilities: { type: Type.STRING }
-                    }
-                  }
-                },
-                identifications: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      type: { type: Type.STRING, enum: ["DNI", "NIE", "Pasaporte", "Otro"] },
-                      value: { type: Type.STRING },
-                      owner: { type: Type.STRING, enum: ["caller", "other"] }
-                    }
+                      roleInConversation: { type: Type.STRING, description: "Ej: Recepcionista, Llamante, Paciente, Familiar, Médico, Otro" },
+                      roleDescription: { type: Type.STRING, description: "Descripción más detallada del rol o relación." },
+                      identifications: {
+                        type: Type.ARRAY,
+                        items: {
+                          type: Type.OBJECT,
+                          properties: {
+                            type: { type: Type.STRING, enum: ["DNI", "NIE", "Pasaporte", "Otro"] },
+                            value: { type: Type.STRING }
+                          }
+                        }
+                      },
+                      contact: {
+                        type: Type.OBJECT,
+                        properties: {
+                          phones: { type: Type.ARRAY, items: { type: Type.STRING } },
+                          addresses: { type: Type.ARRAY, items: { type: Type.STRING } },
+                          emails: { type: Type.ARRAY, items: { type: Type.STRING } }
+                        }
+                      },
+                      personalData: {
+                        type: Type.OBJECT,
+                        properties: {
+                          dateOfBirth: { type: Type.STRING },
+                          age: { type: Type.STRING },
+                          otherInfo: { type: Type.STRING }
+                        }
+                      }
+                    },
+                    required: ["name", "roleInConversation"]
                   }
                 },
                 serviceRequests: {
@@ -115,12 +130,15 @@ export const transcribeAudio = async (
                 },
                 appointmentRequest: {
                   type: Type.OBJECT,
+                  description: "Datos de la cita. Generar solo si se discute una cita.",
                   properties: {
+                    isConfirmed: { type: Type.BOOLEAN, description: "True SOLO SI el paciente confirmó definitivamente la cita. False si quedó pendiente, no fue claro, o solo fue una propuesta." },
                     date: { type: Type.STRING },
                     time: { type: Type.STRING },
                     clinic: { type: Type.STRING },
                     details: { type: Type.STRING }
-                  }
+                  },
+                  required: ["isConfirmed"]
                 },
                 callType: { 
                   type: Type.STRING, 
@@ -133,13 +151,6 @@ export const transcribeAudio = async (
                     requestedInfo: { type: Type.STRING }
                   }
                 },
-                contactDetails: {
-                  type: Type.OBJECT,
-                  properties: {
-                    phones: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    addresses: { type: Type.ARRAY, items: { type: Type.STRING } }
-                  }
-                },
                 sentimentAnalysis: {
                   type: Type.OBJECT,
                   properties: {
@@ -149,7 +160,7 @@ export const transcribeAudio = async (
                   }
                 }
               },
-              required: ["receiverName", "callerName", "callType", "sentimentAnalysis"]
+              required: ["callCenter", "peopleProfiles", "callType", "sentimentAnalysis"]
             },
             segments: {
               type: Type.ARRAY,

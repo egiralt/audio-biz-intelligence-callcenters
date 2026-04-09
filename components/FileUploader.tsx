@@ -31,10 +31,17 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelected, disabled })
       const base64String = reader.result as string;
       const base64 = base64String.split(',')[1];
       
+      // Force mimeType to audio to prevent Gemini from expecting video frames
+      // if the browser detects an audio file (like .mpeg) as video/*
+      let mimeType = file.type;
+      if (mimeType.startsWith('video/')) {
+        mimeType = mimeType.replace('video/', 'audio/');
+      }
+      
       onFileSelected({
         blob: file,
         base64,
-        mimeType: file.type
+        mimeType
       });
     };
   };

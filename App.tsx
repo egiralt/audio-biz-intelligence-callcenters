@@ -4,20 +4,27 @@
 */
 
 import React, { useState, useEffect } from 'react';
-import { Mic, Upload, Sparkles, AlertTriangle, Moon, Sun } from 'lucide-react';
-import AudioRecorder from './components/AudioRecorder';
+import { Upload, Sparkles, AlertTriangle, Moon, Sun, Building2 } from 'lucide-react';
 import FileUploader from './components/FileUploader';
 import TranscriptionDisplay from './components/TranscriptionDisplay';
 import Button from './components/Button';
 import { transcribeAudio } from './services/geminiService';
 import { AppStatus, AudioData, TranscriptionResponse } from './types';
 
+const CALL_CENTERS = [
+  "Neutral (General)",
+  "GomerMedi - Tenerife",
+  "GomerMedi - Gran Canaria",
+  "GomerMedi - Fuerteventura",
+  "GomerMedi - La Gomera"
+];
+
 function App() {
-  const [mode, setMode] = useState<'record' | 'upload'>('record');
   const [status, setStatus] = useState<AppStatus>('idle');
   const [audioData, setAudioData] = useState<AudioData | null>(null);
   const [result, setResult] = useState<TranscriptionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [callCenter, setCallCenter] = useState<string>(CALL_CENTERS[0]);
   
   // Initialize dark mode based on system preference
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -51,7 +58,7 @@ function App() {
     setError(null);
 
     try {
-      const data = await transcribeAudio(audioData.base64, audioData.mimeType);
+      const data = await transcribeAudio(audioData.base64, audioData.mimeType, callCenter);
       setResult(data as TranscriptionResponse);
       setStatus('success');
     } catch (err) {
@@ -116,64 +123,50 @@ function App() {
           </div>
         )}
 
-        {/* Input Selection Tabs */}
-        {!result && (
-            <div className="bg-white dark:bg-slate-900 p-1 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 inline-flex mb-8 w-full sm:w-auto transition-colors duration-300">
-            <button
-                onClick={() => { setMode('record'); handleReset(); }}
-                className={`flex-1 sm:flex-none flex items-center justify-center px-6 py-2.5 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-900 focus:ring-indigo-500 ${
-                mode === 'record' 
-                    ? 'bg-indigo-600 text-white shadow-sm' 
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
-                disabled={status === 'processing'}
-            >
-                <Mic size={16} className="mr-2" />
-                Grabar Llamada
-            </button>
-            <button
-                onClick={() => { setMode('upload'); handleReset(); }}
-                className={`flex-1 sm:flex-none flex items-center justify-center px-6 py-2.5 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-900 focus:ring-indigo-500 ${
-                mode === 'upload' 
-                    ? 'bg-indigo-600 text-white shadow-sm' 
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
-                disabled={status === 'processing'}
-            >
-                <Upload size={16} className="mr-2" />
-                Subir Archivo
-            </button>
-            </div>
-        )}
-
         {/* Main Content Area */}
         <div className="space-y-8">
-          
-          {/* Input Section */}
+
+          {/* Input Selection Tabs */}
           {!result && status !== 'processing' && (
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 sm:p-8 transition-colors duration-300">
-              {mode === 'record' ? (
-                <AudioRecorder onAudioCaptured={handleAudioReady} disabled={status === 'processing'} />
-              ) : (
-                <FileUploader onFileSelected={handleAudioReady} disabled={status === 'processing'} />
-              )}
-
-              {audioData && (
-                <div className="mt-6 flex justify-end pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <Button 
-                    onClick={handleTranscribe} 
-                    isLoading={status === 'processing'}
-                    className="w-full sm:w-auto"
-                    icon={<Sparkles size={16} />}
-                  >
-                    Generar Ficha y Transcripción
-                  </Button>
-                </div>
-              )}
+            
+            {/* Call Center Selector */}
+            <div className="mb-8">
+              <label htmlFor="callCenter" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center">
+                <Building2 size={16} className="mr-2 text-indigo-500" />
+                Seleccionar Call Center
+              </label>
+              <select
+                id="callCenter"
+                value={callCenter}
+                onChange={(e) => setCallCenter(e.target.value)}
+                className="block w-full rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-3 px-4 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm transition-colors"
+                disabled={status === 'processing' || !!audioData}
+              >
+                {CALL_CENTERS.map((cc) => (
+                  <option key={cc} value={cc}>{cc}</option>
+                ))}
+              </select>
             </div>
-          )}
 
-          {/* Processing State */}
+            <FileUploader onFileSelected={handleAudioReady} disabled={status === 'processing'} />
+
+            {audioData && (
+              <div className="mt-6 flex justify-end pt-6 border-t border-slate-100 dark:border-slate-800">
+                <Button 
+                  onClick={handleTranscribe} 
+                  isLoading={status === 'processing'}
+                  className="w-full sm:w-auto"
+                  icon={<Sparkles size={16} />}
+                >
+                  Generar Ficha y Transcripción
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Processing State */}
           {status === 'processing' && (
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-12 text-center transition-colors duration-300">
               <div className="flex justify-center mb-6">

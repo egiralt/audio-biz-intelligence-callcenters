@@ -19,22 +19,32 @@ export interface TranscriptionSegment {
   emotion?: Emotion;
 }
 
-export interface CallAnalysis {
-  receiverName: string;
-  callerName: string;
-  callerData: string;
-  otherPeople: Array<{
-    name: string;
-    role: string;
-    responsibilities: string;
-  }>;
+export interface PersonProfile {
+  name: string;
+  roleInConversation: string; // e.g., 'Recepcionista', 'Llamante', 'Paciente', 'Familiar', 'Médico', 'Otro'
+  roleDescription: string;
   identifications: Array<{
     type: 'DNI' | 'NIE' | 'Pasaporte' | 'Otro';
     value: string;
-    owner: 'caller' | 'other';
   }>;
+  contact: {
+    phones: string[];
+    addresses: string[];
+    emails: string[];
+  };
+  personalData: {
+    dateOfBirth: string;
+    age: string;
+    otherInfo: string;
+  };
+}
+
+export interface CallAnalysis {
+  callCenter: string;
+  peopleProfiles: PersonProfile[];
   serviceRequests: string[];
   appointmentRequest?: {
+    isConfirmed: boolean;
     date?: string;
     time?: string;
     clinic?: string;
@@ -44,10 +54,6 @@ export interface CallAnalysis {
   leadPotential: {
     isLead: boolean;
     requestedInfo: string;
-  };
-  contactDetails: {
-    phones: string[];
-    addresses: string[];
   };
   sentimentAnalysis: {
     score: number; // 0 to 10
