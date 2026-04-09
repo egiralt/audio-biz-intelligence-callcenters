@@ -4,7 +4,7 @@
 */
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { TranscriptionSegment, Emotion } from "../types";
+import { TranscriptionSegment, Emotion, TranscriptionResponse } from "../types";
 
 const parseJson = (text: string) => {
     try {
@@ -20,7 +20,7 @@ export const transcribeAudio = async (
   base64Audio: string,
   mimeType: string,
   callCenter: string
-): Promise<{ segments: TranscriptionSegment[]; summary: string }> => {
+): Promise<TranscriptionResponse> => {
   if (!process.env.API_KEY) {
     throw new Error("API Key is missing. Please ensure process.env.API_KEY is available.");
   }

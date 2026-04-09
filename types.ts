@@ -68,6 +68,14 @@ export interface TranscriptionResponse {
   segments: TranscriptionSegment[];
 }
 
+export interface CallRecord {
+  id: string;
+  date: string;
+  fileName: string;
+  callCenter: string;
+  result: TranscriptionResponse;
+}
+
 export type AppStatus = 'idle' | 'recording' | 'processing' | 'success' | 'error';
 
 export interface AudioData {

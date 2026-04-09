@@ -4,27 +4,16 @@
 */
 
 import React, { useState, useEffect } from 'react';
-import { Upload, Sparkles, AlertTriangle, Moon, Sun, Building2 } from 'lucide-react';
-import FileUploader from './components/FileUploader';
+import { Sparkles, Moon, Sun, Plus, Phone, Calendar, Search, Inbox } from 'lucide-react';
 import TranscriptionDisplay from './components/TranscriptionDisplay';
 import Button from './components/Button';
-import { transcribeAudio } from './services/geminiService';
-import { AppStatus, AudioData, TranscriptionResponse } from './types';
-
-const CALL_CENTERS = [
-  "Neutral (General)",
-  "GomerMedi - Tenerife",
-  "GomerMedi - Gran Canaria",
-  "GomerMedi - Fuerteventura",
-  "GomerMedi - La Gomera"
-];
+import NewCallModal from './components/NewCallModal';
+import { CallRecord } from './types';
 
 function App() {
-  const [status, setStatus] = useState<AppStatus>('idle');
-  const [audioData, setAudioData] = useState<AudioData | null>(null);
-  const [result, setResult] = useState<TranscriptionResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [callCenter, setCallCenter] = useState<string>(CALL_CENTERS[0]);
+  const [calls, setCalls] = useState<CallRecord[]>([]);
+  const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Initialize dark mode based on system preference
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -45,53 +34,36 @@ function App() {
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
-  const handleAudioReady = (data: AudioData) => {
-    setAudioData(data);
-    setError(null);
-    setResult(null); // Clear previous results
+  const handleAddCall = (record: CallRecord) => {
+    setCalls(prev => [record, ...prev]);
+    setSelectedCallId(record.id);
+    setIsModalOpen(false);
   };
 
-  const handleTranscribe = async () => {
-    if (!audioData) return;
+  const selectedCall = calls.find(c => c.id === selectedCallId);
 
-    setStatus('processing');
-    setError(null);
-
-    try {
-      const data = await transcribeAudio(audioData.base64, audioData.mimeType, callCenter);
-      setResult(data as TranscriptionResponse);
-      setStatus('success');
-    } catch (err) {
-      console.error(err);
-      setError("An error occurred during transcription. Please try again.");
-      setStatus('error');
-    }
-  };
-
-  const handleReset = () => {
-    setAudioData(null);
-    setResult(null);
-    setStatus('idle');
-    setError(null);
+  const formatDate = (isoString: string) => {
+    const d = new Date(isoString);
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 transition-colors duration-300">
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-hidden">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 transition-colors duration-300">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 z-10 transition-colors duration-300">
+        <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
             <div className="bg-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-500/30">
               <Sparkles size={20} />
             </div>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
-              GomerMedi EchoScript
-            </h1>
+            <div>
+              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 leading-tight">
+                GomerMedi
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Repositorio de Llamadas</p>
+            </div>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-sm text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
-              Centralita de Salud - Canarias
-            </div>
             <button
               onClick={toggleDarkMode}
               className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -99,114 +71,102 @@ function App() {
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+            <Button onClick={() => setIsModalOpen(true)} icon={<Plus size={16} />}>
+              Nueva Llamada
+            </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+      {/* Main Layout */}
+      <div className="flex flex-1 overflow-hidden">
         
-        {/* Intro */}
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-            Análisis Inteligente de Llamadas
-          </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Procesa las grabaciones de la centralita para extraer fichas de pacientes, citas y análisis de sentimiento automáticamente.
-          </p>
-        </div>
-
-        {/* Status Error */}
-        {status === 'error' && error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-start text-red-700 dark:text-red-400">
-            <AlertTriangle className="mr-3 flex-shrink-0 mt-0.5" size={20} />
-            <p>Ha ocurrido un error durante el procesamiento. Por favor, inténtelo de nuevo.</p>
-          </div>
-        )}
-
-        {/* Main Content Area */}
-        <div className="space-y-8">
-
-          {/* Input Selection Tabs */}
-          {!result && status !== 'processing' && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 sm:p-8 transition-colors duration-300">
-            
-            {/* Call Center Selector */}
-            <div className="mb-8">
-              <label htmlFor="callCenter" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center">
-                <Building2 size={16} className="mr-2 text-indigo-500" />
-                Seleccionar Call Center
-              </label>
-              <select
-                id="callCenter"
-                value={callCenter}
-                onChange={(e) => setCallCenter(e.target.value)}
-                className="block w-full rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-3 px-4 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm transition-colors"
-                disabled={status === 'processing' || !!audioData}
-              >
-                {CALL_CENTERS.map((cc) => (
-                  <option key={cc} value={cc}>{cc}</option>
-                ))}
-              </select>
+        {/* Sidebar */}
+        <aside className="w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-colors duration-300">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Buscar llamadas..." 
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-colors"
+              />
             </div>
-
-            <FileUploader onFileSelected={handleAudioReady} disabled={status === 'processing'} />
-
-            {audioData && (
-              <div className="mt-6 flex justify-end pt-6 border-t border-slate-100 dark:border-slate-800">
-                <Button 
-                  onClick={handleTranscribe} 
-                  isLoading={status === 'processing'}
-                  className="w-full sm:w-auto"
-                  icon={<Sparkles size={16} />}
-                >
-                  Generar Ficha y Transcripción
-                </Button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {calls.length === 0 ? (
+              <div className="p-6 text-center text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center h-full">
+                <Inbox size={32} className="mb-2 opacity-20" />
+                <p className="text-sm">No hay llamadas registradas</p>
               </div>
+            ) : (
+              calls.map(call => (
+                <button
+                  key={call.id}
+                  onClick={() => setSelectedCallId(call.id)}
+                  className={`w-full text-left p-3 rounded-xl transition-all ${
+                    selectedCallId === call.id 
+                      ? 'bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/50 shadow-sm' 
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                      {call.result.analysis.callType}
+                    </span>
+                    <span className="text-[10px] text-slate-400 flex items-center">
+                      <Calendar size={10} className="mr-1" /> {formatDate(call.date)}
+                    </span>
+                  </div>
+                  <p className="font-bold text-sm text-slate-900 dark:text-white truncate mb-1">
+                    {call.result.analysis.peopleProfiles.find(p => p.roleInConversation.toLowerCase().includes('llamante') || p.roleInConversation.toLowerCase().includes('paciente'))?.name || 'Desconocido'}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center">
+                    <Phone size={10} className="mr-1" /> {call.callCenter}
+                  </p>
+                </button>
+              ))
             )}
           </div>
-        )}
+        </aside>
 
-        {/* Processing State */}
-          {status === 'processing' && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-12 text-center transition-colors duration-300">
-              <div className="flex justify-center mb-6">
-                 <div className="relative">
-                    <div className="w-16 h-16 border-4 border-indigo-100 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin"></div>
-                    <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
-                        <Sparkles size={24} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
-                    </div>
-                 </div>
-              </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Analizando Llamada...</h3>
-              <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                Gemini está identificando interlocutores, detectando citas médicas y analizando el sentimiento de la conversación.
-              </p>
-            </div>
-          )}
-
-          {/* Results Section */}
-          {result && status === 'success' && (
-            <div>
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Ficha de Análisis</h2>
-                    <Button onClick={handleReset} variant="secondary">Nueva Llamada</Button>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950 p-6 sm:p-8">
+          {selectedCall ? (
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6 flex justify-between items-end">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Ficha de Llamada</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Registrada el {formatDate(selectedCall.date)} • Archivo: {selectedCall.fileName}
+                  </p>
                 </div>
-                <TranscriptionDisplay data={result} />
+              </div>
+              <TranscriptionDisplay data={selectedCall.result} />
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-full shadow-sm mb-4 border border-slate-100 dark:border-slate-800">
+                <Sparkles size={48} className="text-indigo-200 dark:text-indigo-900/50" />
+              </div>
+              <h2 className="text-xl font-medium text-slate-600 dark:text-slate-300 mb-2">Selecciona una llamada</h2>
+              <p className="text-sm max-w-md text-center">
+                Elige una llamada del panel lateral para ver su ficha de análisis detallada, o registra una nueva llamada.
+              </p>
+              <Button onClick={() => setIsModalOpen(true)} className="mt-6" icon={<Plus size={16} />}>
+                Registrar Nueva Llamada
+              </Button>
             </div>
           )}
-        </div>
+        </main>
+      </div>
 
-        {/* Disclaimer */}
-        <div className="mt-16 text-center text-xs text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed border-t border-slate-200 dark:border-slate-800 pt-8 transition-colors duration-300">
-            <p className="mb-2">
-            By using this feature, you confirm that you have the necessary rights to any content that you upload. Do not upload content that infringes on others’ intellectual property or privacy rights. Your use of this generative AI service is subject to our <a href="https://policies.google.com/terms/generative-ai/use-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Prohibited Use Policy</a>.
-            </p>
-            <p>
-            Please note that uploads from Google Workspace may be used to develop and improve Google products and services in accordance with our <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-700 dark:hover:text-slate-300 transition-colors">terms</a>.
-            </p>
-        </div>
-
-      </main>
+      <NewCallModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={handleAddCall} 
+      />
     </div>
   );
 }
