@@ -52,6 +52,7 @@ export const transcribeAudio = async (
        - Categoría de la llamada (información, citas, reclamación, equivocada, otro).
        - Detección de leads (interés en precios o servicios).
        - Análisis de sentimiento detallado (puntuación 0-10 y descripción).
+    5. Para CADA segmento de la transcripción, incluye un array de "tags" (etiquetas) indicando el TIPO de entidad descubierta en esa línea. Usa SOLO estos valores: "Persona", "Identificación", "Lugar", "Cita Confirmada", "Servicio", "Contacto". NO pongas el valor exacto (ej. no pongas "Juan", pon "Persona"). Si no hay nada relevante, devuelve un array vacío.
 
     Output Format: JSON object con la estructura definida en el schema.
   `;
@@ -177,6 +178,14 @@ export const transcribeAudio = async (
                     type: Type.STRING, 
                     enum: Object.values(Emotion)
                   },
+                  tags: {
+                    type: Type.ARRAY,
+                    description: "Tipos de entidades descubiertas en esta línea. NO usar los valores exactos, solo los tipos.",
+                    items: { 
+                      type: Type.STRING,
+                      enum: ["Persona", "Identificación", "Lugar", "Cita Confirmada", "Servicio", "Contacto"]
+                    }
+                  }
                 },
                 required: ["speaker", "timestamp", "content", "language", "language_code", "emotion"],
               },

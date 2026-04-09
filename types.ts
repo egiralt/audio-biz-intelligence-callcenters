@@ -17,6 +17,7 @@ export interface TranscriptionSegment {
   language: string;
   translation?: string;
   emotion?: Emotion;
+  tags?: string[];
 }
 
 export interface PersonProfile {
@@ -74,6 +75,7 @@ export interface CallRecord {
   fileName: string;
   callCenter: string;
   result: TranscriptionResponse;
+  audioUrl?: string;
 }
 
 export type AppStatus = 'idle' | 'recording' | 'processing' | 'success' | 'error';

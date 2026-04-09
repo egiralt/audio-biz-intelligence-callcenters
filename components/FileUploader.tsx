@@ -101,10 +101,10 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelected, disabled })
           role="button"
           tabIndex={disabled ? -1 : 0}
           aria-label="Upload audio file"
-          className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-2xl transition-all outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-900 ${
+          className={`flex flex-col items-center justify-center p-6 border border-dashed rounded transition-all outline-none focus:ring-1 focus:ring-indigo-500 ${
             dragActive 
-              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20" 
-              : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800/80"
+              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/10" 
+              : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-indigo-400 dark:hover:border-indigo-500"
           } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -113,34 +113,29 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelected, disabled })
           onClick={() => !disabled && inputRef.current?.click()}
           onKeyDown={handleKeyDown}
         >
-          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 rounded-full mb-4">
-            <UploadCloud size={32} />
-          </div>
-          <p className="text-lg font-medium text-slate-700 dark:text-slate-200 mb-1">
-            Click to upload or drag & drop
+          <UploadCloud size={24} className={`mb-2 ${dragActive ? 'text-indigo-500' : 'text-slate-400'}`} />
+          <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Haz clic o arrastra un archivo
           </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">
             MP3, WAV, M4A, WEBM (Max 20MB)
           </p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 flex items-center justify-between shadow-sm transition-colors duration-300">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg">
-              <FileAudio size={24} />
-            </div>
-            <div>
-              <p className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-md">{fileName}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Ready to transcribe</p>
+        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded p-3 flex items-center justify-between">
+          <div className="flex items-center space-x-3 overflow-hidden">
+            <FileAudio size={16} className="text-indigo-500 flex-shrink-0" />
+            <div className="truncate">
+              <p className="font-medium text-xs text-slate-800 dark:text-slate-200 truncate">{fileName}</p>
             </div>
           </div>
           <button 
             onClick={handleClear}
-            className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="p-1 text-slate-400 hover:text-red-500 transition-colors focus:outline-none"
             disabled={disabled}
             aria-label="Remove file"
           >
-            <X size={20} />
+            <X size={14} />
           </button>
         </div>
       )}

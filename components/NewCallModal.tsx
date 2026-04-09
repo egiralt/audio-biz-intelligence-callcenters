@@ -43,12 +43,15 @@ const NewCallModal: React.FC<NewCallModalProps> = ({ isOpen, onClose, onSuccess 
     try {
       const data = await transcribeAudio(audioData.base64, audioData.mimeType, callCenter);
       
+      const audioUrl = `data:${audioData.mimeType};base64,${audioData.base64}`;
+
       const newRecord: CallRecord = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
         fileName: fileName,
         callCenter: callCenter,
-        result: data
+        result: data,
+        audioUrl: audioUrl
       };
       
       setStatus('success');
@@ -76,49 +79,51 @@ const NewCallModal: React.FC<NewCallModalProps> = ({ isOpen, onClose, onSuccess 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Nueva Llamada</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center">
+            <Building2 size={14} className="mr-2 text-indigo-500" />
+            Nueva Llamada
+          </h2>
           <button onClick={handleClose} disabled={status === 'processing'} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-            <X size={24} />
+            <X size={16} />
           </button>
         </div>
         
-        <div className="p-6 overflow-y-auto">
+        <div className="p-4 overflow-y-auto">
           {status === 'error' && error && (
-            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-start text-red-700 dark:text-red-400">
-              <AlertTriangle className="mr-3 flex-shrink-0 mt-0.5" size={20} />
+            <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-3 flex items-start text-red-700 dark:text-red-400 text-xs">
+              <AlertTriangle className="mr-2 flex-shrink-0 mt-0.5" size={14} />
               <p>{error}</p>
             </div>
           )}
 
           {status === 'processing' ? (
-            <div className="py-12 text-center">
-              <div className="flex justify-center mb-6">
+            <div className="py-8 text-center">
+              <div className="flex justify-center mb-4">
                  <div className="relative">
-                    <div className="w-16 h-16 border-4 border-indigo-100 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin"></div>
+                    <div className="w-10 h-10 border-2 border-indigo-100 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin"></div>
                     <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
-                        <Sparkles size={24} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
+                        <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
                     </div>
                  </div>
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Analizando Llamada...</h3>
-              <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                Gemini está identificando interlocutores, detectando citas médicas y analizando el sentimiento de la conversación.
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">Analizando Llamada...</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[250px] mx-auto">
+                Extrayendo entidades, detectando citas y analizando sentimiento.
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
-                <label htmlFor="callCenter" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center">
-                  <Building2 size={16} className="mr-2 text-indigo-500" />
-                  Seleccionar Call Center
+                <label htmlFor="callCenter" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Centro de Atención (Call Center)
                 </label>
                 <select
                   id="callCenter"
                   value={callCenter}
                   onChange={(e) => setCallCenter(e.target.value)}
-                  className="block w-full rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-3 px-4 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm transition-colors"
+                  className="block w-full rounded border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-xs transition-colors outline-none"
                 >
                   {CALL_CENTERS.map((cc) => (
                     <option key={cc} value={cc}>{cc}</option>
@@ -126,18 +131,23 @@ const NewCallModal: React.FC<NewCallModalProps> = ({ isOpen, onClose, onSuccess 
                 </select>
               </div>
 
-              <FileUploader onFileSelected={handleAudioReady} disabled={status === 'processing'} />
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Archivo de Audio
+                </label>
+                <FileUploader onFileSelected={handleAudioReady} disabled={status === 'processing'} />
+              </div>
             </div>
           )}
         </div>
 
         {status !== 'processing' && (
-          <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end space-x-3">
-            <Button variant="secondary" onClick={handleClose}>Cancelar</Button>
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-end space-x-2">
+            <Button variant="ghost" onClick={handleClose}>Cancelar</Button>
             <Button 
               onClick={handleTranscribe} 
               disabled={!audioData}
-              icon={<Sparkles size={16} />}
+              icon={<Sparkles size={14} />}
             >
               Generar Ficha
             </Button>
