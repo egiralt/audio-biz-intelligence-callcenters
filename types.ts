@@ -76,6 +76,7 @@ export interface CallRecord {
   callCenter: string;
   result: TranscriptionResponse;
   audioUrl?: string;
+  audioId?: string;
 }
 
 export type AppStatus = 'idle' | 'recording' | 'processing' | 'success' | 'error';

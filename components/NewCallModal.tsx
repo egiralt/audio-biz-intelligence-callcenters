@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Building2, Sparkles, AlertTriangle } from 'lucide-react';
 import FileUploader from './FileUploader';
 import Button from './Button';
-import { transcribeAudio } from '../services/geminiService';
+import { transcribeAudio, uploadAudio } from '../services/apiClient';
 import { AppStatus, AudioData, CallRecord } from '../types';
 
 const CALL_CENTERS = [
@@ -41,9 +41,11 @@ const NewCallModal: React.FC<NewCallModalProps> = ({ isOpen, onClose, onSuccess 
     setError(null);
 
     try {
-      const data = await transcribeAudio(audioData.base64, audioData.mimeType, callCenter);
+      // 1. Subir el audio al servicio de ficheros
+      const uploadResult = await uploadAudio(audioData.base64, audioData.mimeType);
       
-      const audioUrl = `data:${audioData.mimeType};base64,${audioData.base64}`;
+      // 2. Solicitar la transcripción usando el ID/filename del audio
+      const data = await transcribeAudio(uploadResult.fileName, audioData.mimeType, callCenter);
 
       const newRecord: CallRecord = {
         id: Date.now().toString(),
@@ -51,7 +53,8 @@ const NewCallModal: React.FC<NewCallModalProps> = ({ isOpen, onClose, onSuccess 
         fileName: fileName,
         callCenter: callCenter,
         result: data,
-        audioUrl: audioUrl
+        audioUrl: uploadResult.url,
+        audioId: uploadResult.fileName
       };
       
       setStatus('success');

@@ -21,11 +21,14 @@ export const transcribeAudio = async (
   mimeType: string,
   callCenter: string
 ): Promise<TranscriptionResponse> => {
-  if (!process.env.API_KEY) {
-    throw new Error("API Key is missing. Please ensure process.env.API_KEY is available.");
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("API Key is missing. Please ensure process.env.GEMINI_API_KEY is available.");
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const keyLength = process.env.GEMINI_API_KEY.length;
+  const keyStart = process.env.GEMINI_API_KEY.substring(0, 4);
+
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   // Using gemini-3-flash-preview for fast multimodal processing
   const modelId = "gemini-3-flash-preview";
@@ -202,8 +205,8 @@ export const transcribeAudio = async (
     const data = parseJson(text);
     return data;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Transcription Error:", error);
-    throw error;
+    throw new Error(`Gemini Error (KeyLen: ${keyLength}, KeyStart: ${keyStart}): ${error.message}`);
   }
 };
